@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -6,24 +7,34 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 
 # ===== Load JSON =====
-data = pd.read_json("result.json")
-df = pd.DataFrame(data["result"]["Listings"])
-df["brand"] = data["result"]["Brand"]
+with open("result.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+# Extract listings into DataFrame
+df = pd.DataFrame(data["listings"])
+df["brand"] = data["brand"]  # add brand column from metadata
 
 # ===== Clean numeric =====
-df["price"] = df["price"].str.replace(r"[^0-9]", "", regex=True).replace("", np.nan).astype(float)
-df["mileage"] = df["mileage"].str.replace(r"[^0-9]", "", regex=True).replace("", np.nan).astype(float)
+df["price"] = pd.to_numeric(df["price"], errors="coerce")
+df["mileage"] = pd.to_numeric(df["mileage_km"], errors="coerce")
 df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-# Drop rows with missing critical values
-df = df.dropna(subset=["price", "year", "mileage", "model", "brand"]).reset_index(drop=True)
+# ===== Handle missing categorical =====
+for col in ["model", "brand", "fuel", "transmission", "deal_tag"]:
+    if col not in df.columns:
+        df[col] = "Unknown"
+    else:
+        df[col] = df[col].fillna("Unknown")
+
+# ===== Drop rows only if critical numeric missing =====
+df = df.dropna(subset=["price", "year", "mileage"]).reset_index(drop=True)
 
 # ===== Features & target =====
-X = df[["year", "mileage", "brand", "model", "fuel", "transmission"]]
+X = df[["year", "mileage", "brand", "model", "fuel", "transmission", "deal_tag"]]
 y = df["price"]
 
 # ===== Preprocessor =====
-categorical = ["brand", "model", "fuel", "transmission"]
+categorical = ["brand", "model", "fuel", "transmission", "deal_tag"]
 numeric = ["year", "mileage"]
 
 preprocessor = ColumnTransformer(
@@ -45,16 +56,17 @@ model.fit(X, y)
 # ===== Prediction function =====
 def predict_price(brand, model_name, year, mileage, fuel="Gas", transmission="Automatic"):
     input_df = pd.DataFrame([{
-        "brand": brand,
-        "model": model_name,
+        "brand": brand if brand else "Unknown",
+        "model": model_name if model_name else "Unknown",
         "year": year,
         "mileage": mileage,
-        "fuel": fuel,
-        "transmission": transmission
+        "fuel": fuel if fuel else "Unknown",
+        "transmission": transmission if transmission else "Unknown",
+        "deal_tag": "Unknown"   # always Unknown at inference
     }])
     return model.predict(input_df)[0]
 
 # ===== Example usage =====
 if __name__ == "__main__":
-    pred = predict_price("MINI", "Countryman", 2022, 160000, "Gas", "Automatic")
+    pred = predict_price("mini", "John Cooper Works", 2017, 189739, "Gas", "Automatic")
     print(f"Predicted fair price: ${pred:,.0f}")
