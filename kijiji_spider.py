@@ -18,7 +18,7 @@ with open("known_models.json", "r", encoding="utf-8") as f:
 parser = argparse.ArgumentParser(description="Crawl Kijiji car listings")
 parser.add_argument("--brand", type=str, default="mini", help="Car brand (e.g., mini, toyota, honda)")
 parser.add_argument("--location", type=str, default="canada", help="Location (e.g., canada, ontario, saskatchewan)")
-parser.add_argument("--outfile", type=str, default="result.json", help="Output JSON file name")
+parser.add_argument("--outfile", type=str, default="kijiji_rawdata.json", help="Output JSON file name")
 args = parser.parse_args()
 
 brand = args.brand.lower()
