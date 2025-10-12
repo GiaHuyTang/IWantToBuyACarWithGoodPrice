@@ -1,7 +1,6 @@
 import sys, os, json, requests, re, argparse
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -20,12 +19,19 @@ with open("known_models.json", "r", encoding="utf-8") as f:
 parser = argparse.ArgumentParser(description="Crawl Kijiji car listings")
 parser.add_argument("--brand", type=str, default="mini", help="Car brand (e.g., mini, toyota, honda)")
 parser.add_argument("--location", type=str, default="canada", help="Location (e.g., canada, ontario, saskatchewan)")
-parser.add_argument("--outfile", type=str, default="result.json", help="Output JSON file name")
+parser.add_argument("--outfile", type=str, default="kijiji_result.json", help="Output JSON file name")
 args = parser.parse_args()
 
 brand = args.brand.lower()
-location = args.location.lower() or "canada"
-outfile = args.outfile or "result.json"
+location = args.location.lower() 
+outfile = args.outfile
+
+# Save results into ../results/ folder
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "results")
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+outfile = os.path.join(RESULTS_DIR, args.outfile)
 
 # ========== Step 1: Use Selenium to detect the last page ==========
 # We use Selenium only to detect pagination (last page number).
@@ -105,6 +111,25 @@ def parse_title(title_text: str, brand: str):
 
     return year, model
 
+def clean_deal_tag(tag_text: str):
+    """
+    Normalize deal tag text like 'Great price!' or 'Good deal'
+    into a clean label: 'Great', 'Good', 'Fair', 'Overpriced', or 'Unknown'.
+    """
+    if not tag_text:
+        return "Unknown"
+    text = tag_text.lower()
+    if "great" in text:
+        return "Great"
+    elif "good" in text:
+        return "Good"
+    elif "fair" in text:
+        return "Fair"
+    elif "over" in text:  # e.g. 'Overpriced'
+        return "Overpriced"
+    else:
+        return "Unknown"
+
 def normalize_listing(listing):
     """
     Normalize raw scraped data into clean, consistent fields
@@ -142,30 +167,11 @@ def normalize_listing(listing):
         "fuel": fuel_val,
         "year": year_val,
         "model": listing.get("model"),
-        "deal_tag": listing.get("deal_tag"),   # added deal tag field
+        "deal_tag": listing.get("deal_tag"),
+        "province_city": listing.get("province_city"),   # renamed field
         "link": listing.get("link")
     }
     return ordered
-
-
-def clean_deal_tag(tag_text: str):
-    """
-    Normalize deal tag text like 'Great price!' or 'Good deal'
-    into a clean label: 'Great', 'Good', 'Fair', 'Overpriced', or 'Unknown'.
-    """
-    if not tag_text:
-        return "Unknown"
-    text = tag_text.lower()
-    if "great" in text:
-        return "Great"
-    elif "good" in text:
-        return "Good"
-    elif "fair" in text:
-        return "Fair"
-    elif "over" in text:  # e.g. 'Overpriced'
-        return "Overpriced"
-    else:
-        return "Unknown"
 
 
 def fetch_page(page):
@@ -188,6 +194,10 @@ def fetch_page(page):
         deal_tag_el = li.select_one('div[class="sc-eb45309b-0 bOFieq"] span')
         deal_tag_raw = deal_tag_el.get_text(strip=True) if deal_tag_el else None
         deal_tag = clean_deal_tag(deal_tag_raw)
+
+        # Extract province/city
+        loc_tag = li.select_one('p[data-testid="listing-location"]')
+        province_city = loc_tag.get_text(strip=True) if loc_tag else None
 
         # Extract details (mileage, transmission, fuel)
         details = li.select('p.sc-991ea11d-0.epsmyv.sc-4b5a8895-2.eEvVV')
@@ -223,11 +233,13 @@ def fetch_page(page):
             "fuel": fuel,
             "year": year,
             "model": model,
-            "deal_tag": deal_tag,   # normalized deal tag
+            "deal_tag": deal_tag,
+            "province_city": province_city,   # renamed field
             "link": link
         }
         cars.append(normalize_listing(raw_listing))
     return page, cars
+
 
 # ========== Step 3: Run crawl ==========
 # Use ThreadPoolExecutor to fetch multiple pages concurrently.
@@ -247,7 +259,6 @@ result_json = {
     "location": location,
     "total_number": len(all_cars),
     "total_pages": last_page,
-    "scraped_at": datetime.utcnow().isoformat() + "Z",
     "source": "kijiji.ca",
     "listings": all_cars
 }

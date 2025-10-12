@@ -20,7 +20,7 @@ df["mileage"] = pd.to_numeric(df["mileage_km"], errors="coerce")
 df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
 # ===== Handle missing categorical =====
-for col in ["model", "brand", "fuel", "transmission", "deal_tag"]:
+for col in ["model", "brand", "fuel", "transmission", "deal_tag", "province_city"]:
     if col not in df.columns:
         df[col] = "Unknown"
     else:
@@ -30,11 +30,11 @@ for col in ["model", "brand", "fuel", "transmission", "deal_tag"]:
 df = df.dropna(subset=["price", "year", "mileage"]).reset_index(drop=True)
 
 # ===== Features & target =====
-X = df[["year", "mileage", "brand", "model", "fuel", "transmission", "deal_tag"]]
+X = df[["year", "mileage", "brand", "model", "fuel", "transmission", "deal_tag", "province_city"]]
 y = df["price"]
 
 # ===== Preprocessor =====
-categorical = ["brand", "model", "fuel", "transmission", "deal_tag"]
+categorical = ["brand", "model", "fuel", "transmission", "deal_tag", "province_city"]
 numeric = ["year", "mileage"]
 
 preprocessor = ColumnTransformer(
@@ -54,7 +54,7 @@ model = Pipeline(
 model.fit(X, y)
 
 # ===== Prediction function =====
-def predict_price(brand, model_name, year, mileage, fuel="Gas", transmission="Automatic"):
+def predict_price(brand, model_name, year, mileage, fuel="Gas", transmission="Automatic", province_city="Unknown"):
     input_df = pd.DataFrame([{
         "brand": brand if brand else "Unknown",
         "model": model_name if model_name else "Unknown",
@@ -62,11 +62,12 @@ def predict_price(brand, model_name, year, mileage, fuel="Gas", transmission="Au
         "mileage": mileage,
         "fuel": fuel if fuel else "Unknown",
         "transmission": transmission if transmission else "Unknown",
-        "deal_tag": "Unknown"   # always Unknown at inference
+        "deal_tag": "Unknown",          # always Unknown at inference
+        "province_city": province_city if province_city else "Unknown"
     }])
     return model.predict(input_df)[0]
 
 # ===== Example usage =====
 if __name__ == "__main__":
-    pred = predict_price("mini", "John Cooper Works", 2017, 189739, "Gas", "Automatic")
+    pred = predict_price("mini", "countryman", 2022, 160000, "Gas", "Automatic", "Saskatoon")
     print(f"Predicted fair price: ${pred:,.0f}")
