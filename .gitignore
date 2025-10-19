@@ -1,5 +1,12 @@
 .venv
-*.json
+results.json
+kijiji_results.json
+autotrader_results.json
+known_models.json
 .vscode
 msedgedriver.exe
 results/
+backend/node_modules/
+
+.env.local
+.env
