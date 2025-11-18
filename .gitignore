@@ -1,5 +1,5 @@
 .venv
-results.json
+*.json
 kijiji_results.json
 autotrader_results.json
 known_models.json
