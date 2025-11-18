@@ -64,6 +64,7 @@ Arguments:
 And it will give you a predicted price.
 
 ## Folder structure
+```
 IWantToBuyACarWithGoodPrice/
 │
 ├── spiders/                #Scrawling Scripts
@@ -74,6 +75,7 @@ IWantToBuyACarWithGoodPrice/
 ├── predicts_car_price.py   #Predict model    
 ├── .gitignore
 └── README.md
-
+```
+---
 ## Author
 Gia Huy Tang - Business Information Systems student at Saskatchewan Polytechnic
