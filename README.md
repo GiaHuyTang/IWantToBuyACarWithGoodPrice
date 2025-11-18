@@ -12,7 +12,8 @@ It will follow step by step:
 
 ---
 ## Requirements
-- Python 3.10+
+Python 3.10+
+
 You need to have **Microsoft Edge WebDriver (`msedgedriver.exe`)** put inside the repo folder or set the path in file by your own.
 
 ---
