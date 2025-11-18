@@ -63,18 +63,22 @@ Arguments:
 
 And it will give you a predicted price.
 
+---
 ## Folder structure
 ```
-IWantToBuyACarWithGoodPrice/
-│
-├── spiders/                #Scrawling Scripts
-│   └── autotrader_spider.py 
-│   └── kijiji_spider.py  
-├── results/                #Results storage    
-├── merge_results.py        #Merging all scrawled results 
-├── predicts_car_price.py   #Predict model    
-├── .gitignore
-└── README.md
+IWantToBuyACarWithGoodPrice/ 
+│ 
+├── spiders/ # Crawling scripts 
+│ ├── autotrader_spider.py # Scraper for AutoTrader 
+│ └── kijiji_spider.py # Scraper for Kijiji 
+│ 
+├── results/ # Results storage (JSON output files) 
+│ 
+├── merge_results.py # Merge all crawled results into one dataset 
+├── predicts_car_price.py # Machine Learning model to predict car prices 
+│ 
+├── .gitignore # Git ignore rules 
+└── README.md # Project documentation
 ```
 ---
 ## Author
